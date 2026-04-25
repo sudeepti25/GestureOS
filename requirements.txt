@@ -1,0 +1,7 @@
+opencv-python==4.9.0.80
+mediapipe==0.10.21
+numpy==1.26.4
+pyautogui==0.9.54
+pyttsx3==2.90
+pywinauto==0.6.8
+comtypes==1.4.1pip list

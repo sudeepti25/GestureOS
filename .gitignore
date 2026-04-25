@@ -1,0 +1,22 @@
+# Virtual environment — never push this
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# MediaPipe/TensorFlow cache
+*.tflite
+
+# VS Code settings
+.vscode/
+
+# Test files
+camtest.py
+fix_sapi.py
+
+# OS files
+.DS_Store
+Thumbs.db
