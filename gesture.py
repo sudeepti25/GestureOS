@@ -29,35 +29,43 @@ def classify_gesture(hand_landmarks):
     ring   = f["ring"]
     pinky  = f["pinky"]
 
-    # PINCH — click (thumb + index touch)
-    
+    # PINCH — highest priority
+    if pinch_dist < 0.08:
+        return "PINCH"
 
-    # POINT — only index up → move mouse
-    if index and not middle and not ring and not pinky:
-        return "POINT"
+    # Count fingers up
+    up_count = sum([index, middle, ring, pinky])
 
-    # PEACE — index + middle → start selecting (mouseDown + drag)
-    if index and middle and not ring and not pinky:
-        return "PEACE"
+    # 0 fingers — FIST
+    if up_count == 0:
+        if (lm[8].y  > lm[5].y and
+            lm[12].y > lm[9].y and
+            lm[16].y > lm[13].y and
+            lm[20].y > lm[17].y):
+            return "FIST"
 
-    # THREE_FINGERS — index + middle + ring → copy Ctrl+C
-    if index and middle and ring and not pinky:
-        return "THREE_FINGERS"
+    # 1 finger
+    if up_count == 1:
+        if index:
+            return "POINT"
+        if pinky:
+            return "PINKY"
 
-    # FOUR_FINGERS — index + middle + ring + pinky (no thumb) → paste Ctrl+V
-    if index and middle and ring and pinky:
-        return "FOUR_FINGERS"
+    # 2 fingers
+    if up_count == 2:
+        if index and middle:
+            return "PEACE"
+        if index and pinky:
+            return "ROCK"
 
-    # FIST — all down → Win key
-    if not index and not middle and not ring and not pinky:
-        return "FIST"
+    # 3 fingers
+    if up_count == 3:
+        if index and middle and ring:
+            return "THREE_FINGERS"
 
-    # ROCK — index + pinky up → screenshot
-    if index and not middle and not ring and pinky:
-        return "ROCK"
-
-    # PINKY only → escape
-    if pinky and not index and not middle and not ring:
-        return "PINKY"
+    # 4 fingers
+    if up_count == 4:
+        if index and middle and ring and pinky:
+            return "FOUR_FINGERS"
 
     return "UNKNOWN"
