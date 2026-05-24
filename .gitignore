@@ -20,3 +20,9 @@ fix_sapi.py
 # OS files
 .DS_Store
 Thumbs.db
+
+/dist
+/build
+dist.zip
+GestureOS.spec
+requirements.py

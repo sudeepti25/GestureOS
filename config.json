@@ -1,0 +1,20 @@
+{
+  "gestures": {
+    "THREE_FINGERS": {"action": "hotkey", "keys": "ctrl+c", "say": "Copied"},
+    "FOUR_FINGERS":  {"action": "hotkey", "keys": "ctrl+v", "say": "Pasted"},
+    "ROCK":          {"action": "hotkey", "keys": "win+printscreen", "say": "Screenshot saved"},
+    "PINKY":         {"action": "key",    "keys": "q",    "say": "Escape"},
+    "DOUBLE_PALM":   {"action": "scroll", "keys": "up",   "value": 70, "say": "Scroll up"},
+"DOUBLE_FIST":   {"action": "scroll", "keys": "down", "value": 70, "say": "Scroll down"}
+  },
+  "settings": {
+    "stability_frames": 12,
+    "smooth_frames": 3,
+    "margin": 0.20,
+    "movement_threshold": 100,
+    "single_click_frames": 8,
+    "narrator_interval": 0.5,
+    "speech_rate": 150,
+    "cooldown": 1.5
+  }
+}

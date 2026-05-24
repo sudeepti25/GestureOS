@@ -3,8 +3,14 @@ import mediapipe as mp
 import pyttsx3
 import threading
 import queue
+import time
 from gesture import classify_gesture
 from actions import execute_action
+from narrator import start_narrator, stop_narrator, narrate_click
+from config_loader import load_config, get_settings
+
+config = load_config()
+settings = get_settings(config)
 
 # --- Voice setup ---
 speech_queue = queue.Queue()
@@ -51,13 +57,11 @@ hands = mp_hands.Hands(
 cap = cv2.VideoCapture(0)
 print("GestureOS started!")
 print("Gestures:")
-print("  ☝️  Index only          → Move mouse / click / double click")
+print("  ☝️  Index only          → Move mouse / click")
 print("  ✌️  Index + Middle      → Drag / Select")
 print("  🤟  Three fingers       → Copy Ctrl+C")
 print("  🖐️  Four fingers        → Paste Ctrl+V")
-print("  🤏  Pinch               → Instant click")
 print("  🤘  Rock                → Screenshot")
-print("  ✊  Fist                → Win key")
 print("  🤙  Pinky               → Escape")
 print("  ☝️☝️ Both index          → Double click")
 print("  🖐️🖐️ Both four fingers   → Scroll up")
@@ -65,10 +69,18 @@ print("  ✊✊ Both fists           → Scroll down")
 print("\nPress Q to quit\n")
 speak("Gesture OS ready. Show your hand.")
 
+# --- Start narrator ---
+start_narrator(speak)
+
 # --- Stability counter ---
-STABILITY_FRAMES = 12
+STABILITY_FRAMES = settings.get("stability_frames", 12)
 gesture_counter = {}
 last_stable_gesture = None
+
+# FPS tracking
+fps_counter = 0
+fps_start = time.time()
+current_fps = 0
 
 while True:
     ret, frame = cap.read()
@@ -76,6 +88,14 @@ while True:
         break
 
     frame = cv2.flip(frame, 1)
+
+    # FPS calculation
+    fps_counter += 1
+    if time.time() - fps_start >= 1.0:
+        current_fps = fps_counter
+        fps_counter = 0
+        fps_start = time.time()
+
     h, w, _ = frame.shape
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(rgb)
@@ -87,7 +107,6 @@ while True:
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Draw skeleton
             mp_draw.draw_landmarks(
                 frame,
                 hand_landmarks,
@@ -98,7 +117,6 @@ while True:
 
             g = classify_gesture(hand_landmarks)
 
-            # Count gestures across both hands
             if g == "POINT":
                 point_count += 1
             if g == "FOUR_FINGERS":
@@ -106,11 +124,10 @@ while True:
             if g == "FIST":
                 fist_count += 1
 
-            # First hand sets the main gesture
             if current_gesture == "NO_HAND":
                 current_gesture = g
 
-        # Two hand gesture overrides — checked after all hands processed
+        # Two hand gesture overrides
         if point_count == 2:
             current_gesture = "DOUBLE_POINT"
         elif four_fingers_count == 2:
@@ -135,6 +152,10 @@ while True:
                 print(f"Gesture: {current_gesture}")
                 last_stable_gesture = current_gesture
 
+                # Narrate clicks
+                if current_gesture in ["POINT", "DOUBLE_POINT"]:
+                    narrate_click(speak)
+
     else:
         gesture_counter = {}
         last_stable_gesture = None
@@ -146,10 +167,9 @@ while True:
         "PEACE":         (255, 255, 0),
         "THREE_FINGERS": (255, 128, 0),
         "FOUR_FINGERS":  (0, 200, 255),
-        "PINCH":         (128, 0, 255),
-        "FIST":          (0, 0, 255),
         "ROCK":          (255, 0, 128),
         "PINKY":         (128, 128, 0),
+        "FIST":          (50, 50, 50),
         "DOUBLE_POINT":  (0, 255, 255),
         "DOUBLE_PALM":   (0, 200, 100),
         "DOUBLE_FIST":   (100, 0, 255),
@@ -162,6 +182,19 @@ while True:
     cv2.putText(frame, f"Gesture: {current_gesture}",
                 (20, 40), cv2.FONT_HERSHEY_SIMPLEX,
                 1.0, color, 2)
+
+    # FPS display
+    cv2.putText(frame, f"FPS: {current_fps}",
+                (w - 100, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                0.6, (200, 200, 200), 1)
+
+    # Last narrated element
+    from narrator import last_spoken_element
+    if last_spoken_element:
+        display_text = last_spoken_element[:40] + "..." if len(last_spoken_element) > 40 else last_spoken_element
+        cv2.putText(frame, f"Focus: {display_text}",
+                    (20, h - 45), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45, (0, 255, 200), 1)
 
     # Stability bar
     count = gesture_counter.get(current_gesture, 0)
@@ -181,6 +214,8 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+# Cleanup
+stop_narrator()
 speech_queue.put(None)
 cap.release()
 cv2.destroyAllWindows()
